@@ -9,7 +9,7 @@ var $$boxy =
     }
 };
 
-if (typeof math===undefined) console.log('Warning for the paranoid! You are using evil eval from an unknown boxySheet can be unpredicatble.\r\nAlternatively, install mathjs as math, (ouch) or roll your own :)');
+if (typeof math===undefined) console.log('Warning for the paranoid! You are using evil eval,  Loading sheets from an unknown boxySheet can be unpredicatble.\r\nAlternatively, install mathjs as math, (ouch) or roll your own :)');
 
 function BoxySheet() {
     
