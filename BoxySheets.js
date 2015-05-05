@@ -1,3 +1,49 @@
+/*===============/
+
+Boxy v0.1a
+
+The Dirty Box.
+
+Boxy JSON requires a server side pre-parse.
+Use the included one, run as a server, or a CLI dump,
+for file, $.get, or copy paste.
+
+Fill in events for media queries relating to
+
+Requires:
+
+jQuery/Zepto ( 
+    to remain optional, 
+    uses basic getters for element positions,
+    and dimensions; 
+)
+
+Install with Bower:
+
+bower install jquery
+
+NodeJS with 
+    
+npm install css
+
+
+- any window or document property -
+
+including --
+
+Media queries for
+
+- Window dimensions (width/height)
+- Scroll positions
+- Any other dimenstions using CSS like selectors
+- Moar.
+
+/================/
+*/
+
+
+
+
 var $$boxy = 
 { firstPass: true, setters: {}, evalCache: {},
     debug: true,
@@ -9,7 +55,7 @@ var $$boxy =
     }
 };
 
-if (typeof math===undefined) console.log('Warning for the paranoid! You are using evil eval,  Loading sheets from an unknown boxySheet can be unpredicatble.\r\nAlternatively, install mathjs as math, (ouch) or roll your own :)');
+if (typeof math===undefined) console.log('Warning for the paranoid! You are using evil eval from an unknown boxySheet can be unpredicatble.\r\nAlternatively, install mathjs as math, (ouch) or roll your own :)');
 
 function BoxySheet() {
     
@@ -50,7 +96,11 @@ function BoxySheet() {
                 if (data !== undefined) {
                     var _return,sp=[];
                     
-                    Object.keys(data).forEach(function(v,k) { var qw = (data[v]==parseFloat(data[v]))?'':'"'; sp.push(v+'='+qw+(data[v])+qw); });
+                    Object.keys(data).forEach(
+                        function(v,k) { 
+                            var qw = (data[v]==parseFloat(data[v]))?'':'"'; 
+                            sp.push(v+'='+qw+(data[v])+qw); 
+                    });
                     
                     str = sp.join(';')+';_return = '+str+';';
                     
@@ -80,6 +130,7 @@ function BoxySheet() {
     }
     
     function process(styles) {
+        window.$boxy = window.$boxy || {};
         
         processStyles(styles);
         
@@ -101,6 +152,7 @@ function BoxySheet() {
                     window[eventObjName];
                     
                 var bounceEvents={};
+                
                 $(obj).on(eventObjType, function() {
                     if (bounceEvents[eventObjType]===true) {
                         return;
@@ -168,9 +220,10 @@ function BoxySheet() {
                     v = parser.eval(evalCode);
                 }
                 
-
+                /* for non-boxy setters, add salt, with a dash */
                 if (prop.charAt(0)=='-') {
                     prop = prop.substr(1);
+                    /* hmm.. maybe the property is a function that will handle things? */
                     if (layoutFunctions[prop]) {
                         layoutFunctions[prop]( el, v);
                     } else {
@@ -182,14 +235,17 @@ function BoxySheet() {
                 boxySetter.call(el,prop,v);
                
             });
+            
             watchers[query].forEach(function(bxy) {
                 var v,el =$$boxy.setters[query].item(bxy[2]);
-                if ( v=el.getAttribute('data-boxy-position') ) {
+                v=el.getAttribute('data-boxy-position');
+                if ( v ) {
                     $(el).css('position',v);
                 } else {
                     $(el).css('position','absolute');
                 }
             });
+            
         });
         
         
@@ -214,7 +270,7 @@ function BoxySheet() {
        
        e = code.replace(/\([\#\.\w]+\)\.\w+/g,function(str) { return func+'("'+str.substr(1,str.indexOf(')')-1)+'","'+str.substr(str.indexOf('.')+1)+'"'+(includeParams||'')+')' });
        
-       if ($$boxy.debug) console.log(e);
+       //if ($$boxy.debug) console.log(e);
         
        return e;
     }
@@ -285,10 +341,14 @@ function BoxySheet() {
                    }
 
                    var item = $$boxy.setters[query].item(position);
+                   
+                   boxyXtend(item);
+                   
                    if (prop.charAt(0)=='-') prop = prop.substring(1);
                    if (val != undefined && val != null) {
                        item.setAttribute('data-boxy-'+prop,val);
                    }
+                   
                    item.setAttribute('data-boxy-index',position);
                    
                    watchers[query] = watchers[query] || [];
@@ -298,18 +358,21 @@ function BoxySheet() {
             });
         });
     }
-    
 
     /* ----------------------------------------------------------*/
   
-    /* Setters section - */
+    /* Setters section - here we process the CSS properties to set - */
     function boxySetter(prop,val) {
+        /* lets make it easy to use any dom manipulation library helper functions */
+        //console.log(this,'setter on ',prop,val);
         if (typeof $(this)[prop] == 'function') {
             $(this)[prop](val);
         }
+        /*  and some basic props */
         if (prop=='left' || prop=='top') {
             $(this).css(prop,val);
         }
+        /* now our other trick pony props */
         if (prop=='center') {
             var w=this.getAttribute('boxy-data-width') || $(this).width();
             $(this).css('left', $(window).width()/2 - w/2);
@@ -320,12 +383,22 @@ function BoxySheet() {
         }
     }
    
+    /* Get a viewport property */
     function boxyGetVw(pr,ps,ar,as) {
+        /* :/ refactor this late night mess */
+        if (this.nodeName) {
+            if (this.nodeName.charAt(0)!='#') {
+                console.trace('Bad Viewport Call')
+            }
+        }
         var self = this;
         var functions = {
+        scrollLeft:
+            function scrollLeft() {
+                return $(self).scrollLeft();
+            },
         scrollTop:
             function scrollTop() {
-                var c= $(self).scrollTop();
                 return $(self).scrollTop();
             },
         width:
@@ -351,98 +424,113 @@ function BoxySheet() {
         };
         if (!functions[pr]) {
             console.log('boxyGetVw error for ',pr,ps,ar,as);
+            console.trace('Boxy ViewPort property error');
             return 0;
         }
         return functions[pr]();
     }
     
-    function boxyGetEl(pr,ps,ar,qs) {
-        var self = this;
-        var v = $(self).data(pr);
-        
-        function getPosition() {
-            if (_(el).data('boxy-position')=='absolute') return _(el).position();
-            return _(el).offset();
-        }
-        function centerGetter() {
-            var a=getPosition(self).left;
-            return a + _(self).width()/2;
-        }
-        function middleGetter() {
-            var a=getPosition(self).top;
-            return a + _(self).height()/2;
-        }
-        function rightSideGetter() {
-            var a=getPosition(self).left;
-            return a + _(self).width();
-        }
-        function bottomSideGetter() {
-            var top = getPosition(self).top;
-            return top + _(self).height();
-        }
-        function cssGetter() {
-            return _(self).css(pr,v);
-        }
-        function funcGetter() {
-            return _(self)[ar]();
-        }
-        function returnPosition() {
-            return ps;
-        }
-        var returns = {
-            'previous': function() {
-                console.log(this,'rpev');
-                var r = boxyGetEl.call( _(this).prev()[0] ,pr,ps,ar,qs);
-                //console.log(r,'previous');
-                return JSON.stringify(r);
-            },
-            'parent': function() {
-                return boxyGetEl.call(this.parentNode,pr,ps,ar,qs);
-            },
-            'this': function() {
-                return boxyGetEl.call(this,pr,ps,ar,qs);
-            },
-            'middle':middleGetter,
-            'index':returnPosition,
-            'width':funcGetter,
-            'height':funcGetter,
-            'top':cssGetter,
-            'left':cssGetter,
-            'center':centerGetter,
-            'bottom':bottomSideGetter,
-            'right':rightSideGetter
+    /* .. I want to stay out of the DOM but I want to be ..'direct' in parsing evaluations ... */
+    /*
+        Extend an element with boxy
+        note:     this is subject to change drastically pending investigation
+    */
+    function boxyExtender(el) {
+        el.boxy = {};
+        el.boxy.BoXYleft = function() {
+           return _(el).offset().left; 
         };
-        if (returns[pr]) return returns[pr]();
-        else console.log('no boxy-ness on | ('+qs+').'+pr, ' | for |', this, [pr,ps,ar,qs]);
+        
+        el.boxy.BoXYtop = function() {
+           return _(el).offset().top; 
+        };
+        
+        el.boxy.BoXYbottom = function() {
+           return _(el).offset().top + _(el).height(); 
+        };
+        
+        el.boxy.BoXYright = function() {
+           return _(el).offset().left + _(el).width(); 
+        };
+        
+        el.boxy.BoXYmiddle = function() {
+           return _(el).offset().top + _(el).height() / 2;  
+        };
+        
+        el.boxy.BoXYcenter = function() {
+           return _(el).offset().left + _(el).width() / 2; 
+        };
+        
+        return el; 
     }
+    
+    
+    /* A wrapper for the extend .. this function name will stay */
+    function boxyXtend(el) {
+        
+        
+        if (el===undefined) {
+            console.trace('Can\'t BoXY Extend undefined!');
+        }
+        el.$boxyed = true;
+        
+        return boxyExtender(el);
+    }
+    
 
     /* ---------------------------------------------------------*/
+    /* figure out what to do with our:
+    
+        query string, css property, position in the list, arguments and what we were querying from
+        
+        - the guts for 'what does should this css style property equal?'
+    */
     function boxyEvaluate(q,prop,position,arg,qs) {
-        /* called from watcherprocessing via eviluater */
         var queryResults;
         var item;
         
-        var evilWith = {
-            'window': function(item,prop,position,arg,qs) {
-                return boxyGetVw.call( item, prop,position,arg,qs);
+        if (q=='window') return boxyGetVw( prop, position, arg, qs);
+        
+        queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
+        
+        var evalWith = {
+            'prev': function(qs,position) {
+                var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
+                return queryResults[position-1] || '';
             },
-            'this': function() {
-                item = $$boxy.setters[qs][position];
-                return boxyGetVw.call( item, prop,position,arg,qs);
+            'next': function(qs,position) {
+                var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
+                return queryResults[position+1] || '';
+            },
+            'this': function(qs,position) {
+                var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
+                return queryResults[position];
             },
             'parent': function() {
-                item = $$boxy.setters[qs][position];
-                return boxyGetVw.call( item.parentElement, prop,position,arg,qs);
+                var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
+                return queryResults[position].parentNode;
             }
         };
         
-        window.$boxy = window.$boxy || {};
-        if (evilWith[q]) return evilWith[q](item,prop,position,arg,qs);
+        if (evalWith[q]) {
+            item = evalWith[q](qs,position);
+        } else  {
+            queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
+            item = queryResults.item(position);
+        }
         
-        queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
-        item = queryResults.item(position);
-        return boxyGetEl.call( item, prop,position,arg,qs);
+        if (item.$boxyed===undefined) {
+            boxyXtend(item);
+        }
         
+        if (typeof item.boxy['BoXY'+prop]=='function') {
+            return item.boxy['BoXY'+prop]();
+        } else {
+            console.log('no function Xtend for BoXY.boxy.'+prop)
+        }
+        
+        /*  the safest error return here is a null string - other data can create floods and choos */
+        return "";
     }
     
     
@@ -453,7 +541,6 @@ function BoxySheet() {
     return {
         parseToEval: parseToEval,
         boxyEvaluate: boxyEvaluate,
-        boxyGet: boxyGetEl,
         parser: parser,
         eventWatchers: eventWatchers,
         watchers: watchers,
