@@ -38,6 +38,16 @@ Media queries for
 - Any other dimenstions using CSS like selectors
 - Moar.
 
+
+('topQuarter=$(window).height();')
+
+@media( (window).scrollTop > topQuarter ) {
+    #mainMenu {
+        top: 0;
+        position: 'fixed';
+    }
+}
+
 /================/
 */
 
@@ -146,6 +156,7 @@ function BoxySheet() {
                 var eventObjName = np[0];
                 var eventObjType = np[1];
                 
+                /* !object events are 'cache bounceless', for now, '!window' */
                 var obj = eventObjName=='window' ||
                     eventObjName=='!window'?
                     window:
@@ -159,6 +170,7 @@ function BoxySheet() {
                     }
                     var mqev = eventInfo[1].join(',');
                     var val = evalMediaQueries(eventInfo[1]);
+                    
                     $$boxy.evalCache[mqev] = $$boxy.evalCache[mqev] || '~not-it~';
 
                     if (val!==$$boxy.evalCache[mqev] || eventObjName.charAt(0)=='!') { 
@@ -263,16 +275,26 @@ function BoxySheet() {
         
         return metQuery;
     }
-       
+    
     function parseToEval(code,includeParams,func) {
-       var e;
+       var e='',m='';
        func = func || 'boxyEvaluate'
        
-       e = code.replace(/\([\#\.\w]+\)\.\w+/g,function(str) { return func+'("'+str.substr(1,str.indexOf(')')-1)+'","'+str.substr(str.indexOf('.')+1)+'"'+(includeParams||'')+')' });
+       var match = code.match(/\([\#\.\-]\w+\)\.\w+/g);
        
-       //if ($$boxy.debug) console.log(e);
-        
-       return e;
+       if (match) {
+           var reval=code;
+           
+           match.forEach(function(toEval) {
+                var m = toEval.match(/\((.+)\)\.(.+)/);
+                reval = reval.replace(toEval,func+'("'+m[1]+'","'+m[2]+'"'+includeParams+')');
+           });
+           
+           if ($$boxy.debug) console.log('toeval',reval);
+           return reval;
+       }
+       
+       return code;
     }
     
     function processStyles(styles,mediaQuery) {
@@ -359,27 +381,27 @@ function BoxySheet() {
         });
     }
 
-    /* ----------------------------------------------------------*/
+    /* ------------------------------.------------.-----------------------.--*/
   
-    /* Setters section - here we process the CSS properties to set - */
+    /* Setters section - here call the style/helper with our gettered got - */
     function boxySetter(prop,val) {
         /* lets make it easy to use any dom manipulation library helper functions */
         //console.log(this,'setter on ',prop,val);
-        if (typeof $(this)[prop] == 'function') {
-            $(this)[prop](val);
+        if (typeof _(this)[prop] == 'function') {
+            _(this)[prop](val);
         }
         /*  and some basic props */
         if (prop=='left' || prop=='top') {
-            $(this).css(prop,val);
+            _(this).css(prop,val);
         }
         /* now our other trick pony props */
         if (prop=='center') {
-            var w=this.getAttribute('boxy-data-width') || $(this).width();
-            $(this).css('left', $(window).width()/2 - w/2);
+            var w=this.getAttribute('boxy-data-width') || _(this).width();
+            _(this).css('left', _(window).width()/2 - w/2);
         }
         if (prop=='middle') {
-            var h=this.getAttribute('boxy-data-height') || $(this).height();
-            $(this).css('left', $(window).height()/2 - h/2);
+            var h=this.getAttribute('boxy-data-height') || _(this).height();
+            _(this).css('left', _(window).height()/2 - h/2);
         }
     }
    
@@ -395,31 +417,35 @@ function BoxySheet() {
         var functions = {
         scrollLeft:
             function scrollLeft() {
-                return $(self).scrollLeft();
+                return _(self).scrollLeft();
             },
         scrollTop:
             function scrollTop() {
-                return $(self).scrollTop();
+                return _(self).scrollTop();
             },
         width:
             function width() {
-                return $(self).width();
+                return _(self).width();
+            },
+        height:
+            function height() {
+                return _(self).height();
             },
         center:
             function center() {
-                return $(self).width()/2;
+                return _(self).width()/2;
             },
         right:
             function right()  {
-                return $(self).width();
+                return _(self).width();
             },
         middle:
             function middle() {
-                return $(self).height()/2;
+                return _(self).height()/2;
             },
         bottom:
             function bottom() {
-                return $(self).height();
+                return _(self).height();
             }
         };
         if (!functions[pr]) {
@@ -437,6 +463,7 @@ function BoxySheet() {
     */
     function boxyExtender(el) {
         el.boxy = {};
+        
         el.boxy.BoXYleft = function() {
            return _(el).offset().left; 
         };
@@ -461,13 +488,20 @@ function BoxySheet() {
            return _(el).offset().left + _(el).width() / 2; 
         };
         
+        el.boxy.BoXYheight = function() {
+           return _(el).height();
+        };
+        
+        el.boxy.BoXYwidth = function() {
+           return _(el).width();
+        };
+        
         return el; 
     }
     
     
     /* A wrapper for the extend .. this function name will stay */
     function boxyXtend(el) {
-        
         
         if (el===undefined) {
             console.trace('Can\'t BoXY Extend undefined!');
@@ -489,24 +523,24 @@ function BoxySheet() {
         var queryResults;
         var item;
         
-        if (q=='window') return boxyGetVw( prop, position, arg, qs);
+        if (q=='-window') return boxyGetVw( prop, position, arg, qs);
         
         queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
         
         var evalWith = {
-            'prev': function(qs,position) {
+            '-prev': function(qs,position) {
                 var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
                 return queryResults[position-1] || '';
             },
-            'next': function(qs,position) {
+            '-next': function(qs,position) {
                 var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
                 return queryResults[position+1] || '';
             },
-            'this': function(qs,position) {
+            '-this': function(qs,position) {
                 var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
                 return queryResults[position];
             },
-            'parent': function() {
+            '-parent': function() {
                 var queryResults = $$boxy.setters[qs] || document.querySelectorAll(qs);
                 return queryResults[position].parentNode;
             }
