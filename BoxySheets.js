@@ -168,18 +168,15 @@ function BoxySheet() {
                     if (bounceEvents[eventObjType]===true) {
                         return;
                     }
-                    var mqev = eventInfo[1].join(',');
+                    var mqev = eventInfo[2].join(',');
                     var val = evalMediaQueries(eventInfo[1]);
                     
                     $$boxy.evalCache[mqev] = $$boxy.evalCache[mqev] || '~not-it~';
-
-                    if (val!==$$boxy.evalCache[mqev] || eventObjName.charAt(0)=='!') { 
-                        if (val) {
-                            bounceEvents[eventObjType] = true;
-                            boxyQuerySheets.process(eventInfo[0]);
-                            boxyQuerySheets.layout();
-                            bounceEvents[eventObjType] = false;
-                        }
+                    if ( val!==$$boxy.evalCache[mqev] || eventObjName.charAt(0)=='!') { 
+                        bounceEvents[eventObjType] = true;
+                        boxyQuerySheets.process(eventInfo[0]);
+                        boxyQuerySheets.layout();
+                        bounceEvents[eventObjType] = false;
                     }
                     $$boxy.evalCache[mqev]=val;
                 });
@@ -221,9 +218,9 @@ function BoxySheet() {
                 var evalCode = bxy[0];
                 var v;
                 
-                /* TODO: .. write down the thing I did what for here.. */
+                /* TODO: .. write down the thing I did what for here..  */
                 if (evalCode.charAt(0)=="'") {
-                    if (evalCode.indexOf('(')>0) {
+                    if (evalCode.charAt(1)=='(') {
                         v = parser.eval(evalCode.substr(1,evalCode.length-2));
                     } else {
                         v = evalCode.substr(1,evalCode.length-2);
@@ -563,7 +560,9 @@ function BoxySheet() {
             console.log('no function Xtend for BoXY.boxy.'+prop)
         }
         
-        /*  the safest error return here is a null string - other data can create floods and choos */
+        /*  the safest error return here is a null string 
+        - other data can create overfloods and chaeos unt unbrighten thine eyes. perhaps. */
+        
         return "";
     }
     
