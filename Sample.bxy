@@ -58,25 +58,26 @@
 
 
 /***
-Note! Boxsheets doesn't support HTML elements as the root selector in a CSS query
+Note! Boxysheets doesn't support element names as the root selector in a CSS query
+e.g.
 
-footer {
+div {
     top: 20;
 }
 
-You can do any number of things, as long as you're writing @|.|# 
+You can do any number of things, as long as you're writing one of @, . or # 
 
 Good:
-#footerFastID footer {
+#footerFastID div {
     top: 20;
 }
 
-.slowQuery footer {
+.slowQuery div {
     top: 20;
 }
 
 Bad:
-h1 .copyText {
+h1.copyText div {
     
 }
 
