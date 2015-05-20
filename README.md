@@ -13,8 +13,10 @@ CSS like javascript built queries for
 ##use easily referenced rulers aka, 'guides'
 
     @guide foo {    
-        left: 50,  
+        left: 50;
         right: (@window).width-50;  
+        top: 20,
+        bottom: (@window).height-20;
     }  
 
 ##react to scrolling or resizing
@@ -44,7 +46,7 @@ CSS like javascript built queries for
     
 ####// or in rows
     #sideNav a.links {
-        dowj: 4;
-        left-side: (@guide).foo.left;
-        right-side: (@guide).foo.right;
+        down: 4;
+        top-side: (@guide).foo.top;
+        bottom-side: (@guide).foo.bottom;
     }
