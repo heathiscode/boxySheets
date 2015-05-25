@@ -1,0 +1,62 @@
+<!DOCTYPE >
+<html>
+    <head>
+        <style>
+            body,div,.boxy-fill {  margin:0; padding:0; }
+            #nav a { font-size: 18px; }
+        </style>
+        
+        <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+        <script type="text/javascript" src="dist/boxyParser.min.js"></script>
+        <script type="text/javascript" src="dist/boxySheets.min.js"></script>
+    </head>
+    <body id="body">
+        
+        <!-- Minimal HTML markup, leaving room for semantics -->
+        <nav id="nav">
+            <a href="#box">Box</a>
+            <a href="#fox">Tox</a>
+            <a href="#fox">Rox</a>
+            <a href="#fox">Sox</a>
+            <a href="#fox">Mox</a>
+            <a href="#fox">Fox</a>
+        </nav>
+        
+        <!-- Look Ma! No wrappers, no divs, no spans. Well. OK. One div, for reference! -->
+        <div id="articles">
+            <article><p style="font-size:40px;">Foo</p></article>
+            <article><p>Bar</p></article>
+            <article>Pidgeon</article>
+        </div>
+                
+        <script type="text/javascript">
+                       
+            $(document).ready(init);
+            
+            $.fn.testProp=function(val) {
+                $(this).css({background:val});
+            }
+            
+            function init() {
+                $.get('./boxySheetSample.bxy',function(res) {
+                    var boxy, boxyStyle;
+                    /* 
+                        Parse the BoxySheet into some JS.
+                        The boxyParser is only required for B.S. development.
+                        e.g. simply take the output from
+                        console.log(JSON.stringify(boxyStyle));
+                        and use it in place of the require.
+                    */
+                    boxyStyle = require('boxyParser')(res);
+                    
+                    /* Initialiaze and load a stylesheet, attach any events.  etc. */
+                    boxy = new BoxySheet();
+                    boxy.load(boxyStyle)
+                    /* Boxy boxed. */
+                });
+            }
+            
+        </script>
+                
+    </body>
+</html>
