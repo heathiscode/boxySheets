@@ -1,0 +1,230 @@
+/*
+    BoxySheets is a layout / UI event focused system that transforms a CSS 
+    style syntax into a dyamically generated Style Sheet.
+    
+    BoxySheets is a layout engine made to reduce B.S., driven by a familiar 
+    syntax,  CSS selectors, math, and plugin support.  Absolute positions drive 
+    each element with calculated positions.   Guidelines and the ability to snap
+    areas next to each other, along with basic flow patterns reduces the pattern
+    equired to position everything in a (theoretically) pixel perfect fashion.
+    
+    @media( (@window).width < 640 ):(@window).resize {
+        #randomElement { 
+            top: (#article).bottom + 20;
+            across: 'fill';
+            left-side: (#button).left;
+            right-side: (#button).right;
+        }
+    }
+    @media( (@window).scrollTop > 200 ):(@window).scroll {
+        #menu { 
+            position: 'fixed';
+        }
+    }
+    
+    BoxySheets uses jQuery to support advanced selectors (experimental only
+    Zepto support, as it uses querySelectorAll). 
+    
+    So, any additional plugin's are supported as "properties", which become 
+    function calls, made with the evaluated 'value' of that property. 
+    
+    e.g. #someElement { pluginNameThatTakeAString: '#elementGroup'; }
+    or 
+    #someElement { otherPlugin: (#element).functionName; }
+  
+    You can easily create your own setters as jQuery plugins
+    e.g.
+    $.fn.newPropertyFn=function(value) {
+       $(this).css('background',value);
+    }
+    
+    #myElement{ newPropertyFn: 'rgba(0,1,0,0.5)'; }
+    
+    Built in special objects like @guide, allow for easy layout.
+    And special properties let you layout elements easily:
+     gap, space
+     across, left-side, right-side
+     down, top-side, bottom-side
+     alignment 
+        
+    
+    @At handles for extra JS magic with
+        @media 
+        - work with conditional events, based on items such as screen size
+        @window 
+        - is your screen
+        @guide 
+        - is your helper, that can store misc. info  left,right,top,bottom 
+          properties as visual aids 
+          (display guideline markers using 'show-lines')
+    
+    
+    @media, unlike CSS, hooks us into a condition/event watchers you define.
+    
+    e.g.  
+    //Declare a guide named 'foo'
+    @guide foo {
+        //show-lines: false; is the default
+        width: 200;
+        left: 20;
+        //strings quotes in Boxy
+        red: '#f00';
+    }
+ 
+    //changing a guide property can change a button size at a certain display size
+    @media( (@window).width < 640 ):(@window).resize {
+        #fooBaz {
+            top: 100;
+        }
+        @guide foo {
+            width: (@window).width - 20;
+        }
+    }
+      
+    #button { width: @(guide).foo.width; }
+    
+    
+    CSS query results using jQuery selectors
+    .foo:last {
+        background: 'blue';
+    }
+    
+    Getting and setting properties, with maths.
+    
+    e.g. make button left equal to article left, plus 10
+    
+    #button { left: (#article).left + 10; }
+    
+    .foo and #bar
+    (.foo).left will return the left position of foo
+    (.foo).right will return the right side of the .foo box (the left position + the width)
+    (.foo).bottom will return the top position + the height
+    
+    
+*/
+
+/* Let your guide, guide your elements */
+
+@guide foo {
+    /* defined for Space before and after elements */
+    space: 20;
+    /* defined for a gap between elements */
+    gap: 20;
+    
+    /* some guidelines, where we want things to sit */
+    left: 50; 
+    top: 50;
+    bottom: (@window).height - 50;
+    right: (@window).width - 50;
+    show-lines: true;
+    
+    /* store any stuff in a guide */
+    foo: 'bar';
+}
+
+@guide bar {
+    top: (#articles article:last).bottom;
+}
+
+#nav {
+    left: 0;
+    top: 0;
+}
+
+
+#nav a {
+    /*the alignment property is experimental and only follows 'midpoint' 
+    right now, a center/middle setter that will wrap text-only children into a div
+    horizontally, vertically aligns everything inside the element onto one line*/
+    
+    alignment: 'midpoint';
+    
+    top: (@guide).foo.top;
+    gap: (@guide).foo.gap;
+    space: (@guide).foo.space;
+    
+    down: 'clear';
+    across: 'auto';
+    
+    left-side: (@guide).foo.left;
+    right-side: (@guide).foo.right;
+    
+    width: 200;
+    height: 60;
+    
+    testProp: '#ecc';
+}
+
+/* Yes, you can use jQuery style selectors - IF you've used a non-special-selector previously, (e.g. #nav a) */
+#nav a:last {
+    background: 'blue';
+}
+
+#articles article {
+    alignment: 'midpoint';
+    
+    left-side: (@guide).foo.left;
+    right-side: (@guide).foo.right;
+    
+    background: '#ece';
+    
+    space: (@guide).foo.space;
+    gap: (@guide).foo.gap;
+    
+    across: 'fill';
+    down: 'auto';
+    top-side: (#nav a:last).bottom;
+    bottom-side: (@guide).foo.bottom;
+    
+}
+
+/* @media is declared with a (condition) and an event to watch */
+@media( (@window).scrollTop > 250 ):(@window).scroll {
+    #nav {
+        /* Boxy treats paranthesis with parsing magic. JS does the rest. */
+        background: 'pink';
+        /* So you still need to quote your strings. */
+        
+        top: 0;
+        bottom: (#nav a:last).bottom;
+        
+        width: (@window).width;
+    }
+}
+
+
+@media( (@window).width < 640):(@window).resize {
+     
+    /*
+       a demo of using special selectors like first, last (no eq(n) atm)
+       and strings being quoted as JS would required.
+    */
+    #nav a:last {
+        background: 'red';
+    }
+   
+    #nav a {
+        /* fill the area between the left and right sides, equally */
+        across: 'fill';
+        left-side: 50;
+        right-side: (@guide).foo.right;
+        
+        /* flow the elements vertically */
+        down: 'layout';
+        top-side: (@guide).foo.top;
+        
+        gap: (@guide).foo.gap;
+        space: (@guide).foo.space;
+    }
+    
+    #articles article {
+        down: 'layout';
+        top-side: (#nav a:last).bottom;
+        
+        across: 'fill';
+        left-side: 50;
+        right-side: (@guide).foo.right;
+        space: (@guide).foo.gap;
+    }
+
+}
