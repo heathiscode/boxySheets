@@ -1,6 +1,10 @@
 //private globals
 var $$boxy = new Object;
 
+String.prototype.camelCase = function() {
+    return this.toString().replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
+}
+
 function BoxySheet() {
     var _;
     var __ = Object.keys; //so lazy
@@ -9,7 +13,7 @@ function BoxySheet() {
 
     if (typeof jQuery != 'undefined') _ = jQuery;
     if (typeof Zepto != 'undefined') _ = Zepto;
-
+    
     $$boxy = {
         items: {},
         guides: {},
@@ -17,7 +21,7 @@ function BoxySheet() {
         sheets: {},
         styles: style
     };
-
+    
     _.fn['bxy'] = function(prop, val) {
 
         _(this).each(function() {
@@ -33,6 +37,7 @@ function BoxySheet() {
     };
 
     _.fn['boxy-alignment'] = function(value) {
+        if (!this.selector) return;
         var props = $$boxy.items[this.selector].properties;
         var placers = {
             'center': function() {
@@ -70,113 +75,103 @@ function BoxySheet() {
 
     _.fn['boxy-gap'] = function(value) {};
 
-    _.fn['boxy-down'] = function(value) {
-        var wide;
-        var topSide;
+    _.fn['boxy-layout'] = function(value) {
+        if (!this.selector) return;
         var props = $$boxy.items[this.selector].properties;
-        var height;
-        var gap = boxyEval(parseProperty(props['gap'] || 0));
-        var space = boxyEval(parseProperty(props['space'])) || 0;
-
-        if (value == 'clear') {
-            return;
+        var info = {
+            gap:  boxyEval(props['gap'])||0,
+            space:  boxyEval(props['space'])||0,
+            top:  boxyEval(props['top-side'])||0,
+            bottom:  boxyEval(props['bottom-side'])||0,
+            left:  boxyEval(props['left-side'])||0,
+            right:  boxyEval(props['right-side'])||0,
+            across:  boxyEval(props['across'])||0,
+            down:  boxyEval(props['down'])||0
         };
-        if (value == 'auto') {
-            value = _(this).length;
-        }
-
-        topSide = boxyEval(parseProperty(props['top-side']));
-
-        wide = (
-            (boxyEval(parseProperty(props['bottom-side'])) + gap - space * 2) -
-            (topSide)
-        ) / value;
-
-        if (wide < 0) {
-            value = 'layout';
-            props['height'] = _(this).height();
-        }
-
-        if (value == 'fill') {
-            wide = boxyEvalProp(props['bottom-side']) -
-                (topSide = boxyEvalProp(props['top-side']));
-
-            _(this).bxy('top', topSide + space);
-            props['top-side'] = topSide;
-            props['height'] = wide - space * 2;
-            return;
-        }
-
-        if (value == 'layout') {
-            wide = wide + gap;
-        }
-
-
-        _(this).each(function(n) {
-            var top = n * wide + topSide + space;
-
-            if (value == 'layout') {
-                height = boxyEval(parseProperty(props['height'])) || _(this).height();
-                top = topSide + (height + gap) * n + space;
+        
+        var layoutFunctions = {
+            
+            'float': function(info,props) {
+                var width = 0,height = 0,biggest = 0;
+                var left = info['left'] + info['space'];
+                var top = info['top'] + info['space'];
+                _(this).each(function(n) {
+                    height = _(this).height();
+                    if (biggest<height) {
+                        biggest = height;
+                    }
+                    width = _(this).width();
+                    _(this).bxy('left',left);
+                    _(this).bxy('top',top);
+                    left = left + width + info['gap'];
+                    if (left+width>=info['right']) {
+                        left = info['left'] + info['gap'];
+                        top = top + biggest + info['gap'];
+                        biggest = 0;
+                    }
+                });
+            },
+            
+            /* fit elements into the defined region, figure out the correct height/width */
+            'fit': function(info,props) {
+                 
+                var left = info['left'] + info['space'];
+                var top = info['top'] + info['space'];
+                
+                var width = (
+                    (info['right'] - info['space']*2) -
+                    (info['left'] ) - ( ((info['across']||1)-1)*info['gap'])
+                ) / (info['across'] || 1);
+                
+                var height = (
+                    (info['bottom'] - info['space']*2) -
+                    (info['top']) - ( ((info['down']||1)-1)*info['gap'])
+                ) / (info['down'] || 1);
+                
+                props['width'] = width;
+                props['height'] = height;
+                
+                _(this).each(function(n) {
+                   var xn = n % props['across'];
+                   var yn = Math.floor(n / props['across']);
+                   left = xn * (width + info['gap']) + info['left'] + info['space'];
+                   top = yn * (height + info['gap']) + info['top'] + info['space'];
+                   _(this).bxy('top',top);
+                   _(this).bxy('left',left);
+                });
+                
+            },
+            'fill': function(info,props) {
+                 
+                var width = (
+                    (info['right'] - info['space']) -
+                    (info['left'] + info['space'])
+                );
+                
+                var height = (
+                    (info['bottom'] - info['space']) -
+                    (info['top'] + info['space'])
+                );
+                
+               _(this).bxy('top',info['top'] + info['space']);
+               _(this).bxy('left',info['left'] + info['space']);
+               _(this).width( width );
+               _(this).height( height );
+                props['width'] = width;
+                props['height'] = height;
             }
-
-            _(this).bxy('top', top);
-            _(this).bxy('height', wide - gap);
-        });
-
+        };
+        
+        if (typeof(layoutFunctions[value])=='function') {
+            if ($$boxy.items[this.selector].state != value) {
+                layoutFunctions[value].call(this,info,props);
+            }
+            $$boxy.items[this.selector].state = value;
+        }
     };
 
-    _.fn['boxy-across'] = function(value) {
-        var wide;
-        var leftSide;
-        var width;
-        var props = $$boxy.items[this.selector].properties;
-        var gap = boxyEval(parseProperty(props['gap'])) || 0;
-        var space = boxyEval(parseProperty(props['space'])) || 0;
-
-        if (value == 'clear') {
-            _(this).bxy('left', props.left ? props.left : '');
-            return;
-        }
-        if (value == 'auto') {
-            value = _(this).length;
-        }
-
-        if (value == 'fill') {
-
-            wide = boxyEvalProp(props['right-side']) -
-                (leftSide = boxyEvalProp(props['left-side']));
-
-            _(this).bxy('left', leftSide + space);
-            props['left-side'] = leftSide;
-            props['width'] = wide - space * 2;
-            return;
-        }
-
-        wide = (
-            (boxyEval(parseProperty(props['right-side'])) + gap - space * 2) -
-            (leftSide = boxyEval(parseProperty(props['left-side'])))
-        ) / value;
-
-        if (value == 'layout') {
-            width = boxyEval(parseProperty(props['width'])) || _(this).width();
-            wide = width + gap;
-        }
-
-        _(this).each(function(n) {
-            var left = n * wide + leftSide + space;
-
-            if (value == 'layout') {
-                left = leftSide + (width + gap) * n + space;
-            }
-
-            _(this).bxy('left', left);
-            _(this).bxy('width', wide - gap);
-        });
-
-        props['width'] = wide - gap;
-
-    };
+    _.fn['boxy-down'] = function(value) { return null; };
+    _.fn['boxy-across'] = function(value) { return null; };
 
 
     _.fn['boxy-position'] = function(value) {
@@ -184,21 +179,35 @@ function BoxySheet() {
         props['position']=value;
         _(this).bxy('position',value);
     };
-    
+   
     _.fn['boxy-space'] = function(value) {};
     _.fn['boxy-bottom-side'] = function(value) {};
     _.fn['boxy-top-side'] = function(value) {};
     _.fn['boxy-right-side'] = function(value) {};
     _.fn['boxy-left-side'] = function(value) {};
-    _.fn['boxy-left'] = function(value) {
-        _(this).bxy('left', value);
-    };
+    
     _.fn['boxy-background'] = function(value) {
-        _(this).bxy('background', value);
+        _(this).bxy('background-color', value);
+    };
+    _.fn['boxy-test'] = function(value) {
+        _(this).bxy('background-color', value);
+        _(this).bxy('color', value);
     };
 
+    _.fn['boxy-left'] = function(value) {
+        if (!this.selector) return;
+        var props = $$boxy.items[this.selector].properties;
+        if (!props['layout']) {
+            _(this).bxy('left', value);
+        }
+    };
+    
     _.fn['boxy-top'] = function(value) {
-        _(this).bxy('top', value);
+        if (!this.selector) return;
+        var props = $$boxy.items[this.selector].properties;
+        if (!props['layout']) {
+            _(this).bxy('top', value);
+        }
     };
 
     _.fn['boxy-bottom'] = function(value) {
@@ -218,7 +227,6 @@ function BoxySheet() {
     _.fn['boxy-height'] = function(value) {
         _(this).bxy('height', value);
     };
-
 
     function load(boxySheet) {
         $$boxy.sheets.loaded = boxySheet;
@@ -250,12 +258,10 @@ function BoxySheet() {
                     var bounce = false;//condition == 'resize'?false:true;
                     
                     var val = boxyEvalProp(condition);
-                    var vax = conditions[condition] || null;
                     if (bounce) {
+                        if (val==conditions[conditon]) return;
                         conditions[condition] = val;
-                        if (val==vax) return;
                     }
-                    
                     if (val) {
                         buildBoxy(boxyStyle, event);
                     } else {
@@ -275,7 +281,8 @@ function BoxySheet() {
         return eval(val);
     }
 
-    function addGuideLine(name, prop, val) {
+    function addGuideLine(name, prop, val, width) {
+        width = width || 1;
         div = document.createElement('div');
         div.className = 'boxyGuide boxy-guide-' + name;
         div.setAttribute('alt', name + ' : ' + prop);
@@ -283,14 +290,14 @@ function BoxySheet() {
         div.style.cursor = 'crosshair';
         div.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
         if (prop == 'left' || prop == 'right') {
-            div.style.width = '1';
+            div.style.width = width+'px';
             div.style.height = $(document).height();
             div.style.left = val;
         }
         else {
             div.style.top = val;
             div.style.width = $(window).width();
-            div.style.height = '1px';
+            div.style.height = width+'px';
         }
         document.body.appendChild(div);
     }
@@ -311,10 +318,10 @@ function BoxySheet() {
         __($$boxy.guides).forEach(function(guideName) {
             var div;
             var guide = $$boxy.guides[guideName];
-            if (guide['show-lines']) {
+            if (guide['show-guide']) {
                 guideProps.forEach(function(prop) {
                     if (guide[prop]) {
-                        addGuideLine(guideName, prop, boxyEvalProp(guide[prop].value));
+                        addGuideLine(guideName, prop, boxyEvalProp(guide[prop].value), guide['show-guide'].value);
                     }
                 });
             }
@@ -344,9 +351,46 @@ function BoxySheet() {
         if (typeof _(item)[prop] === 'function') {
             return _(item)[prop](value);
         }
+        if (
+            typeof $$boxy.styles.style[('webkit-'+prop).camelCase()]!='undefined' ||
+            typeof $$boxy.styles.style[('moz-'+prop).camelCase()]!='undefined' ||
+            typeof $$boxy.styles.style[(prop).camelCase()]!='undefined'
+            ) {
+            return _(item).css(prop,value);
+        }
         console.log('No setter for:', prop);
         console.log('unable to set:', item, value);
     }
+    
+    function setElementStyle(item,style) {
+        var self = this;
+        __(style).forEach(function(property) {
+            var val = boxyEvalProp(style[property].value || style[property]);
+            setProperty(_(self), property, val);
+        });
+    }
+    
+    var elementEvent ={
+      'click': function(item,rule,style) {
+          _(item).click(function() {
+              setElementStyle.call(this,item,style);
+          });
+      },
+      'hover': function(item,rule,style) {
+          _(item).mouseover(function() {
+              setElementStyle.call(this,item,style);
+          });
+          _(item).mouseout(function() {
+              var self = this;
+              _(this).data('boxy-items').forEach(function(rule) { 
+                  var resetProps = {};
+                  var props = $$boxy.items[rule].properties;
+                  __(props).forEach(function(prop) { resetProps[prop]=props[prop] || ''; });
+                  setElementStyle.call(self,item,resetProps);
+              });
+          });
+      }
+    };
 
     /* */
     function buildBoxy(boxySheet) {
@@ -368,34 +412,56 @@ function BoxySheet() {
                 $$boxy.items[item] = $$boxy.items[item] || {
                     properties: {}
                 };
+                $$boxy.items[item].state = null;
                 $$boxy.items[item].properties[property] = parseProperty(value);
 
                 /* if looks like a querySelector, gather our list */
                 if (item.charAt(0) == '.' || item.charAt(0) == '#') {
 
                     if (!$$boxy.items[item].elements) {
+                        var addRule='';
+                        var state = '';//for :active,:hover etc
                         var rule = item;
+                        var cssRule = rule;
 
-                        $$boxy.items[rule].elements = _(item);
+                        item = item.replace(/\:\:.*/,'');
+                        if ($$boxy.items[item]) {
+                            $$boxy.items[item].elements = _(item);
+                        }
 
                         var index = $$boxy.styles.sheet.cssRules.length;
 
+                        if (rule.indexOf('::') > 0) {
+                            item = item.replace(/\:\:.*/,'');
+                            rule = rule.split('::');
+                            rule[1] = rule[1].replace(/[^a-zA-Z0-9\-]/g,'')
+                            if (typeof(elementEvent[rule[1]])=='function') {
+                                elementEvent[rule[1]](_(rule[0]),rule[0],style);
+                                return;
+                            }
+                        }
                         if (rule.indexOf(':') > 0) {
                             rule = rule.split(':');
-                            _(rule[0] + ':' + rule[1]).addClass('-boxy-' + rule[1]);
-                            rule = rule[0] + '.-boxy-' + rule[1];
+                            rule[1] = rule[1].replace(/[^a-zA-Z0-9\-]/g,'')
+                            cssRule = (rule[0] + '.-boxy-' + rule[1]);
+                            addRule = '-boxy-' + rule[1];
+                            rule[1] = rule[1].replace(/:.*/,'');
                         }
-
                         $$boxy.styles.sheet.insertRule(
-                            rule + ' { position: absolute; }', index
+                            cssRule + ' { position: absolute; }', index
                         );
 
                         _(item).each(function() {
+                            var items = _(this).data('boxy-items') || [];
                             var index = $$boxy.styles.sheet.cssRules.length;
+                            items.push(item);
+                            _(this).data('boxy-items',items);
                             $$boxy.styles.sheet.insertRule(
-                                rule + '.boxy-index-' + index + ' { position: absolute; }', index
+                               (r = cssRule + '.boxy-index-' + index )+ 
+                                '{ position: absolute; }', index
                             );
                             _(this).addClass('boxy-index-' + index);
+                            _(this).addClass(addRule);
                             _(this).data('boxy-index', index);
                         });
 
@@ -435,7 +501,7 @@ function BoxySheet() {
         if (code === undefined) return '';
         if (!code.match) return code; //we're not a string
 
-        match = code.match(/\([\#\.\@][\ \:\w]+\)(\.\w+)(\.\w+)?/g);
+        match = code.match(/\([\#\.\@][\ \:\w]+\)(\.[\-\w]+)(\.[\-\w]+)?/g);
 
         if (match) {
             var reval = code;
