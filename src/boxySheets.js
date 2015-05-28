@@ -170,6 +170,11 @@ function BoxySheet() {
         }
     };
 
+    _.fn['boxy-animate'] = function(value) { 
+        _(this).animate(value);
+        return null; 
+    };
+    
     _.fn['boxy-down'] = function(value) { return null; };
     _.fn['boxy-across'] = function(value) { return null; };
 
@@ -233,7 +238,7 @@ function BoxySheet() {
         $$boxy.sheets.active = boxySheet;
         $$boxy.sheets.stack = [];
         buildBoxy(boxySheet);
-        layout();
+        //layout();
         events();
         _(window).resize();
     }
@@ -275,13 +280,8 @@ function BoxySheet() {
         });
     }
 
-    function boxyEval(val) {
-        if (val.indexOf)
-            if (val.indexOf("'") < 0 && val.indexOf('(') < 0) val = parseFloat(val);
-        return eval(val);
-    }
-
     function addGuideLine(name, prop, val, width) {
+        var div;
         width = width || 1;
         div = document.createElement('div');
         div.className = 'boxyGuide boxy-guide-' + name;
@@ -314,8 +314,8 @@ function BoxySheet() {
         var data, val, deval, cssSelector;
     
         clearGuideLines();
-        var guideProps = ['left', 'right', 'top', 'bottom'];
         __($$boxy.guides).forEach(function(guideName) {
+            var guideProps = ['left', 'right', 'top', 'bottom'];
             var div;
             var guide = $$boxy.guides[guideName];
             if (guide['show-guide']) {
@@ -334,11 +334,12 @@ function BoxySheet() {
                     __(data.properties).forEach(function(property) {
                         deval = parseProperty(data.properties[property]);
                         val = boxyEval.call(el, deval);
-                        setProperty(item, property, val);
+                       setProperty(item, property, val);
                     });
                 });
             }
         });
+        
     }
 
     /* set an item property */
@@ -371,12 +372,38 @@ function BoxySheet() {
     }
     
     var elementEvent ={
+      'touchstart': function(item,rule,style) {
+          _(item).touchstart(function() {
+              setElementStyle.call(this,item,style);
+          });
+      },
+      'touchend': function(item,rule,style) {
+          _(item).touchend(function() {
+              setElementStyle.call(this,item,style);
+          });
+      },
+      'clicked': function(item,rule,style) {
+          _(item).data('boxy-style-clicked',style);
+      },
       'click': function(item,rule,style) {
+          _(item).data('boxy-style-click',style);
+          _(item).unbind('click');
           _(item).click(function() {
+              var clicked = true;
+              var styleClicked = _(this).data('boxy-style-clicked');
+              if (styleClicked && _(this).data('boxy-clicked')==true) {
+                  style = styleClicked;
+                  _(this).data('boxy-clicked',false);
+              } else {
+                  style = _(item).data('boxy-style-click');
+                  _(this).data('boxy-clicked',true);
+              }
               setElementStyle.call(this,item,style);
           });
       },
       'hover': function(item,rule,style) {
+          _(item).unbind('mouseout');
+          _(item).unbind('mouseover');
           _(item).mouseover(function() {
               setElementStyle.call(this,item,style);
           });
@@ -403,17 +430,23 @@ function BoxySheet() {
 
         $$boxy.sheets.active = boxySheet;
 
+        /* Core bits get setup here - parsing for events in @media and QS::event selectors */
         __(boxySheet).forEach(function(item) {
 
             style = boxySheet[item];
+            
             __(style).forEach(function(property) {
                 value = style[property].value || '';
 
                 $$boxy.items[item] = $$boxy.items[item] || {
                     properties: {}
                 };
-                $$boxy.items[item].state = null;
+                
+                /* pre-evaluate props */
                 $$boxy.items[item].properties[property] = parseProperty(value);
+                
+                /* state storage */
+                $$boxy.items[item].state = null;
 
                 /* if looks like a querySelector, gather our list */
                 if (item.charAt(0) == '.' || item.charAt(0) == '#') {
@@ -423,23 +456,25 @@ function BoxySheet() {
                         var state = '';//for :active,:hover etc
                         var rule = item;
                         var cssRule = rule;
-
-                        item = item.replace(/\:\:.*/,'');
-                        if ($$boxy.items[item]) {
-                            $$boxy.items[item].elements = _(item);
-                        }
-
                         var index = $$boxy.styles.sheet.cssRules.length;
 
                         if (rule.indexOf('::') > 0) {
-                            item = item.replace(/\:\:.*/,'');
+                            //item = item.replace(/\:\:.*/,'');
                             rule = rule.split('::');
                             rule[1] = rule[1].replace(/[^a-zA-Z0-9\-]/g,'')
                             if (typeof(elementEvent[rule[1]])=='function') {
                                 elementEvent[rule[1]](_(rule[0]),rule[0],style);
                                 return;
                             }
+                            return;
                         }
+
+                        if ($$boxy.items[item]) {
+                            $$boxy.items[item].elements = 
+                            $$boxy.items[item].elements || _(item);
+                            console.log('x',item);
+                        }
+                       
                         if (rule.indexOf(':') > 0) {
                             rule = rule.split(':');
                             rule[1] = rule[1].replace(/[^a-zA-Z0-9\-]/g,'')
@@ -447,19 +482,24 @@ function BoxySheet() {
                             addRule = '-boxy-' + rule[1];
                             rule[1] = rule[1].replace(/:.*/,'');
                         }
+                        
                         $$boxy.styles.sheet.insertRule(
                             cssRule + ' { position: absolute; }', index
                         );
 
                         _(item).each(function() {
+                            
                             var items = _(this).data('boxy-items') || [];
                             var index = $$boxy.styles.sheet.cssRules.length;
                             items.push(item);
+                            
                             _(this).data('boxy-items',items);
+                            
                             $$boxy.styles.sheet.insertRule(
                                (r = cssRule + '.boxy-index-' + index )+ 
                                 '{ position: absolute; }', index
                             );
+                            
                             _(this).addClass('boxy-index-' + index);
                             _(this).addClass(addRule);
                             _(this).data('boxy-index', index);
@@ -494,8 +534,8 @@ function BoxySheet() {
 
     /* parse a properties value into set of function calls */
     function parseProperty(code) {
-        var match;
         var m = '';
+        var match;
         var func = 'getProperty.call'; //our getter functions
 
         if (code === undefined) return '';
@@ -507,12 +547,35 @@ function BoxySheet() {
             var reval = code;
             match.forEach(function(toEval) {
                 var m = toEval.match(/\((.+)\)\.(.+)/);
-                reval = reval.replace(toEval, func + '(this,"' + m[1] + '","' + m[2] + '\")');
+                reval = reval.replace(toEval, func + "(this,'" + m[1] + "','" + m[2] + "\')");
             });
+            
+            if (code.charAt(0)=="'") {
+                if (code.charAt(1)=="{") {
+                    reval = reval.substring(1,reval.length-1);
+                }
+            }
+    
             return reval;
         }
 
         return code;
+    }
+
+    function boxyEval(val) {
+        if (val.indexOf)
+            if (val.indexOf("'") < 0 && val.indexOf('(') < 0) val = parseFloat(val);
+                
+        if (typeof(val)=='string') {
+            if (val.charAt(0)=='{') {
+                var obj = JSON.parse(val);
+                __(obj).forEach(function(key) {
+                   obj[key]=boxyEval(obj[key]);
+                });
+                return obj;
+            }
+        }
+        return eval(val);
     }
 
     function boxyEvalProp(prop) {
