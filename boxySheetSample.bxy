@@ -16,10 +16,18 @@
             right-side: (#button).right;
         }
     }
+    
     @media( (@window).scrollTop > 200 ):(@window).scroll {
         #menu { 
             position: 'fixed';
         }
+    }
+    
+    #nav a::click {
+        animate: '{ "left": "10+10" }';
+    }
+    #nav a::clicked {
+        animate: '{ "left": "20+10" }';
     }
     
     BoxySheets uses jQuery to support advanced selectors (experimental only
@@ -103,21 +111,25 @@
     
 */
 
-/* Let your guide, guide your elements */
+/* Let your guide, guide your elements. */
 
 @guide foo {
+    pad: 50;
     /* defined for Space before and after elements */
-    space: 20;
+    space: 10;
     /* defined for a gap between elements */
-    gap: 20;
+    gap: 10;
     
     /* some guidelines, where we want things to sit */
-    left: 50; 
-    top: 50;
-    bottom: (@window).height - 50;
-    right: (@window).width - 50;
-    show-lines: true;
+    left: (@guide).foo.pad; 
+    top: (@guide).foo.pad;
+    bottom: (@window).height - (@guide).foo.pad;
+    right: (@window).width - (@guide).foo.pad;
     
+    first-column: (@guide).foo.left + 250;
+    
+    /* show some helpers */
+    show-guide: 4;
     /* store any stuff in a guide */
     foo: 'bar';
 }
@@ -131,39 +143,54 @@
     top: 0;
 }
 
+/* hook into a click */
+#nav a::click {
+    animate: '{ "left": "(@guide).foo.left+(@guide).foo.gap+20" }';
+}
+
+/* the 'after clicked' style. */
+#nav a::clicked {
+    animate: '{ "left": "(@guide).foo.left+(@guide).foo.gap" }';
+}
 
 #nav a {
     /*the alignment property is experimental and only follows 'midpoint' 
     right now, a center/middle setter that will wrap text-only children into a div
     horizontally, vertically aligns everything inside the element onto one line*/
     
+    color: '#fff';
+    
+    box-shadow: 'rgba(127,127,127,0.5) 1px -1px';
+    border-radius: 20;
+    
     alignment: 'midpoint';
     
-    top: (@guide).foo.top;
-    gap: (@guide).foo.gap;
-    space: (@guide).foo.space;
+    gap: 20;
+    space: 10;
     
-    down: 'clear';
-    across: 'auto';
+    layout: 'fit';
+    across: 1;
+    down: 5;
     
+    top-side: (@guide).foo.top;
+    bottom-side: (@guide).foo.bottom;
     left-side: (@guide).foo.left;
-    right-side: (@guide).foo.right;
+    right-side: (@guide).foo.first-column;
     
-    width: 200;
-    height: 60;
-    
-    testProp: '#ecc';
+    background: '#c66';
 }
 
-/* Yes, you can use jQuery style selectors - IF you've used a non-special-selector previously, (e.g. #nav a) */
-#nav a:last {
-    background: 'blue';
+#nav a:eq(2) {
+    background: '#9c9';
 }
 
 #articles article {
     alignment: 'midpoint';
     
-    left-side: (@guide).foo.left;
+    layout: 'fit';
+    top-side: (@guide).foo.top;
+    bottom-side: (@guide).foo.bottom;
+    left-side: (@guide).foo.first-column;
     right-side: (@guide).foo.right;
     
     background: '#ece';
@@ -193,7 +220,7 @@
 }
 
 
-@media( (@window).width < 640):(@window).resize {
+@media( (@window).width < 0):(@window).resize {
      
     /*
        a demo of using special selectors like first, last (no eq(n) atm)
