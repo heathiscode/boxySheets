@@ -22,11 +22,10 @@ function BoxySheet() {
     };
     
     _.fn['bxy'] = function(prop, val) {
-
         _(this).each(function() {
             var dex = _(this).data('boxy-index');
             var style = $$boxy.styles.sheet.cssRules.item(dex).style;
-            if (val == undefined || val == '') {
+            if (val === undefined || val === '') {
                 style.removeProperty(prop);
                 return;
             }
@@ -237,7 +236,7 @@ function BoxySheet() {
         $$boxy.sheets.active = boxySheet;
         $$boxy.sheets.stack = [];
         buildBoxy(boxySheet);
-        //layout();
+        layout();
         events();
         _(window).resize();
     }
