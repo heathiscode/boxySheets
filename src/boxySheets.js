@@ -29,6 +29,7 @@ function BoxySheet() {
                 style.removeProperty(prop);
                 return;
             }
+            if (val == parseFloat(val) ) val = val +'px';
             style.setProperty(prop, val);
         });
 
