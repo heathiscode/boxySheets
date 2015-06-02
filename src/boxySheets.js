@@ -1,4 +1,3 @@
-//private globals
 var $$boxy = new Object;
 
 String.prototype.camelCase = function() {
@@ -472,7 +471,6 @@ function BoxySheet() {
                         if ($$boxy.items[item]) {
                             $$boxy.items[item].elements = 
                             $$boxy.items[item].elements || _(item);
-                            console.log('x',item);
                         }
                        
                         if (rule.indexOf(':') > 0) {
