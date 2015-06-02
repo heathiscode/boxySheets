@@ -1,9 +1,18 @@
 /* 
     usage:
-    browserify -r ./boxyParser.js:boxyParser> dist/boxyParser.out.js
+    browserify -r ./boxyParser.js:boxyParser> src/boxyParser.js
     
-    require('./boxyParser')('.string {  }')
-     
+    If you're using the parser in your production environment, you're doing it wrong.
+    
+    In your client side JS:
+    
+    var boxySheet = new boxySheet();
+    var boxyStyle = require('./boxyParser')(".queryString { [boxy-]prop: (selector).prop || 'value'; }");
+
+    boxySheet.load(boxyStyle);
+    ...
+    Be sure to store the output from the parser for faster loads!   
+    
 */
 function boxyParser(boxySheet) {
     var file = boxySheet || '';

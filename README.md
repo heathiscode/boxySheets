@@ -1,16 +1,21 @@
 # BoxySheets
 
-   BoxySheets is a layout / UI event focused system that transforms a CSS 
-   style syntax into a dyamically generated Style Sheets with driven by 
-   event watchers - like window resize, or scroll, useful for parralax and responsive designs.
-    
-   ##What is it?
+   BoxySheets is a system that transforms a CSS style syntax into a dyamically 
+   generated Style Sheets driven by event watchers.   Dynamically layout elements in a custom box model
+   built with web designer applications in mind, rather then print media.
    
-   It's a layout engine made to reduce B.S., driven by a familiar 
-   syntax,  CSS selectors, math, and plugin support.  Absolute positions drive 
-   each element with calculated positions.   Guidelines and the ability to snap
-   areas next to each other, along with basic flow patterns reduces the patterns
-   required to position everything in a (theoretically) pixel perfect fashion.
+##What is it?
+
+   It's a layout engine made to reduce B.S., driven by a CSS selectors, and plugin support.  
+   Absolute positions drive each element with calculated positions.   Utilities such as @guide allow
+   you to line up areas next to each other.   The ability to reposition elements relative to each other
+   in any calculatable fashion allows for infinite variations on responsive layouts.
+    
+    @guide foo {
+      left: 20;
+      right: (@window).width - 20;
+      top: (.someGroup:last).bottom + 20; /* 20px below the last of an element with the class .someGroup */
+    }
     
     @media( (@window).width < 640 ):(@window).resize {
         #randomElement { 
@@ -148,4 +153,3 @@ and create a guide using an element's "box" (the left/top/width/height).
     }
  
 The sample boxy sheet shows more.  
-
