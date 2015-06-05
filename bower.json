@@ -4,6 +4,7 @@
   "authors": [
     "heathiscode <heathiscode@gmail.com>"
   ],
+  "main": ["./dist/boxySheets.min.js","./dist/boxyParser.min.js"],
   "description": "BoxySheets transforms CSS syntax into JavaScript functions for layout and more:",
   "license": "MIT",
   "homepage": "http://boxysheets.com",
