@@ -29,11 +29,32 @@ function BoxySheet() {
                 style.removeProperty(prop);
                 return;
             }
-            if (val == parseFloat(val) ) val = val +'px';
+            if (val == parseFloat(val) ) {
+		if (prop.indexOf('-')<0) val = val +'px';
+	    }
             style.setProperty(prop, val);
         });
 
     };
+
+    $$boxy.topLayer = 1;
+    _.fn['boxy-layer'] = function(value) {
+	if (value=='top') value = ++$$boxy.topLayer;
+	_(this).bxy('z-index',value);
+    }
+
+
+
+    _.fn['boxy-middle'] = function(value) {
+        var l = value/2 - _(this).height()/2;
+	_(this).bxy('top',l);
+    }
+
+
+    _.fn['boxy-center'] = function(value) {
+        var l = value/2 - _(this).width()/2;
+	_(this).bxy('left',l);
+    }
 
     _.fn['boxy-alignment'] = function(value) {
         if (!this.selector) return;
@@ -77,6 +98,7 @@ function BoxySheet() {
     _.fn['boxy-layout'] = function(value) {
         if (!this.selector) return;
         var props = $$boxy.items[this.selector].properties;
+
         var info = {
             gap:  boxyEval(props['gap'])||0,
             space:  boxyEval(props['space'])||0,
@@ -111,24 +133,30 @@ function BoxySheet() {
                 });
             },
             
-            /* fit elements into the defined region, figure out the correct height/width */
+/* fit elements into the defined region, figure out the correct height/width */
+
             'fit': function(info,props) {
+		var left,top,width,height;
                  
-                var left = info['left'] + info['space'];
-                var top = info['top'] + info['space'];
+                left = info['left'] + info['space'];
+                top = info['top'] + info['space'];
                 
-                var width = (
-                    (info['right'] - info['space']*2) -
-                    (info['left'] ) - ( ((info['across']||1)-1)*info['gap'])
-                ) / (info['across'] || 1);
-                
-                var height = (
-                    (info['bottom'] - info['space']*2) -
-                    (info['top']) - ( ((info['down']||1)-1)*info['gap'])
-                ) / (info['down'] || 1);
-                
-                props['width'] = width;
-                props['height'] = height;
+		if (info['right']>info['left']) {
+			width = (
+			(info['right'] - info['space']*2) -
+			(info['left'] ) - ( ((info['across']||1)-1)*info['gap'])
+			) / (info['across'] || 1);
+		}
+		    
+		if (info['bototm']>info['top']) {
+			height = (
+			(info['bottom'] - info['space']*2) -
+			(info['top']) - ( ((info['down']||1)-1)*info['gap'])
+			) / (info['down'] || 1);
+		}
+
+		if (width>0) props['width'] = width;
+		if (height>0) props['height'] = height;
                 
                 _(this).each(function(n) {
                    var xn = n % props['across'];
@@ -177,7 +205,6 @@ function BoxySheet() {
     _.fn['boxy-down'] = function(value) { return null; };
     _.fn['boxy-across'] = function(value) { return null; };
 
-
     _.fn['boxy-position'] = function(value) {
         var props = $$boxy.items[this.selector].properties;
         props['position']=value;
@@ -212,6 +239,14 @@ function BoxySheet() {
         if (!props['layout']) {
             _(this).bxy('top', value);
         }
+    };
+
+    _.fn['boxy-height'] = function(value) {
+console.log(value);
+	if (value=='auto') {
+		value = $(this).children().height();
+	}
+        _(this).height(value);
     };
 
     _.fn['boxy-bottom'] = function(value) {
@@ -387,7 +422,7 @@ function BoxySheet() {
       'click': function(item,rule,style) {
           _(item).data('boxy-style-click',style);
           _(item).unbind('click');
-          _(item).click(function() {
+          _(item).click(function(e) {
               var clicked = true;
               var styleClicked = _(this).data('boxy-style-clicked');
               if (styleClicked && _(this).data('boxy-clicked')==true) {
@@ -398,6 +433,7 @@ function BoxySheet() {
                   _(this).data('boxy-clicked',true);
               }
               setElementStyle.call(this,item,style);
+              e.preventDefault();
           });
       },
       'hover': function(item,rule,style) {
@@ -561,6 +597,9 @@ function BoxySheet() {
     }
 
     function boxyEval(val) {
+	if (typeof val=='undefined') {
+		return undefined;
+	}
         if (val.indexOf)
             if (val.indexOf("'") < 0 && val.indexOf('(') < 0) val = parseFloat(val);
                 
@@ -605,14 +644,24 @@ function BoxySheet() {
             return false;
         }
         if (item.charAt(0) == '#' || item.charAt(0) == '.') {
-            if (typeof _(item)[prop] === 'function') {
-                return _(item)[prop]();
+            var bprop = 'boxy-get-'+prop;
+            if (prop == 'top') {
+                return parseFloat(_(item).css('top'));
+            }
+            if (prop == 'left') {
+                return parseFloat(_(item).css('left'));
             }
             if (prop == 'right') {
                 return _(item).width() + parseFloat(_(item).css('left'));
             }
             if (prop == 'bottom') {
                 return _(item).height() + parseFloat(_(item).css('top'));
+            }
+            if (typeof _(item)[bprop] === 'function') {
+                return _(item)[bprop]();
+            }
+            if (typeof _(item)[prop] === 'function') {
+                return _(item)[prop]();
             }
             return _(item).css(prop);
         }
