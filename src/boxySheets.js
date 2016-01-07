@@ -25,6 +25,258 @@ function BoxySheet() {
 
     boxyFn(_);
 
+    _.fn['bxy'] = function(prop, val) {
+        _(this).each(function() {
+            var dex = _(this).data('boxy-index');
+            var style = $$boxy.styles.sheet.cssRules.item(dex).style;
+            if (val === undefined || val === '') {
+                style.removeProperty(prop);
+                return;
+            }
+            if (val == parseFloat(val)) {
+                if (prop.indexOf('-') < 0) val = val + 'px';
+            }
+            style.setProperty(prop, val);
+        });
+
+    };
+
+    $$boxy.topLayer = 1;
+    _.fn['boxy-layer'] = function(value) {
+        if (value == 'top') value = ++$$boxy.topLayer;
+        _(this).bxy('z-index', value);
+    }
+
+
+
+    _.fn['boxy-middle'] = function(value) {
+        var l = value / 2 - _(this).height() / 2;
+        _(this).bxy('top', l);
+    }
+
+
+    _.fn['boxy-center'] = function(value) {
+        var l = value / 2 - _(this).width() / 2;
+        _(this).bxy('left', l);
+    }
+
+    _.fn['boxy-alignment'] = function(value) {
+        if (!this.selector) return;
+        var props = $$boxy.items[this.selector].properties;
+        var placers = {
+            'center': function() {
+
+            },
+            'midpoint': function() {
+                /* this has to be a boxy set font size, we presume pixels */
+                _(this).each(function() {
+                    var t = _(this).text();
+                    _(this).css('text-align', 'center');
+                    if (_(this).children().length == 0) {
+                        _(this).html('');
+                        _(this).append('<div class="boxy-fill">' + t + '</div>');
+                    }
+                    var h = _(this).height();
+                    var ch = _(this).children().height();
+                    var fs = _(this).children().css('font-size');
+
+                    _(this).children().css('position', 'absolute');
+
+                    if (_(this).css('width')) {
+                        _(this).children().css('width', _(this).css('width'));
+                    }
+                    _(this).children().css('top', (h - ch) / 2);
+                    _(this).children().css('margin', 0);
+                    _(this).children().css('padding', 0);
+                    return;
+                });
+            }
+        };
+        if (typeof placers[value] == 'function') {
+            placers[value].call(this, value);
+        }
+    };
+
+    _.fn['boxy-gap'] = function(value) {};
+
+    _.fn['boxy-layout'] = function(value) {
+        if (!this.selector) return;
+        var props = $$boxy.items[this.selector].properties;
+
+        var info = {
+            gap: boxyEval(props['gap']) || 0,
+            space: boxyEval(props['space']) || 0,
+            top: boxyEval(props['top-side']) || 0,
+            bottom: boxyEval(props['bottom-side']) || 0,
+            left: boxyEval(props['left-side']) || 0,
+            right: boxyEval(props['right-side']) || 0,
+            across: boxyEval(props['across']) || 0,
+            down: boxyEval(props['down']) || 0
+        };
+
+        var layoutFunctions = {
+
+            'float': function(info, props) {
+                var width = 0,
+                    height = 0,
+                    biggest = 0;
+                var left = info['left'] + info['space'];
+                var top = info['top'] + info['space'];
+                _(this).each(function(n) {
+                    height = _(this).height();
+                    if (biggest < height) {
+                        biggest = height;
+                    }
+                    width = _(this).width();
+                    _(this).bxy('left', left);
+                    _(this).bxy('top', top);
+                    left = left + width + info['gap'];
+                    if (left + width >= info['right']) {
+                        left = info['left'] + info['gap'];
+                        top = top + biggest + info['gap'];
+                        biggest = 0;
+                    }
+                });
+            },
+
+            /* fit elements into the defined region, figure out the correct height/width */
+
+            'fit': function(info, props) {
+                var left, top, width, height;
+
+                left = info['left'] + info['space'];
+                top = info['top'] + info['space'];
+
+                if (info['right'] > info['left']) {
+                    width = (
+                        (info['right'] - info['space'] * 2) -
+                        (info['left']) - (((info['across'] || 1) - 1) * info['gap'])
+                    ) / (info['across'] || 1);
+                }
+
+                if (info['bototm'] > info['top']) {
+                    height = (
+                        (info['bottom'] - info['space'] * 2) -
+                        (info['top']) - (((info['down'] || 1) - 1) * info['gap'])
+                    ) / (info['down'] || 1);
+                }
+
+                if (width > 0) props['width'] = width;
+                if (height > 0) props['height'] = height;
+
+                _(this).each(function(n) {
+                    var xn = n % props['across'];
+                    var yn = Math.floor(n / props['across']);
+                    left = xn * (width + info['gap']) + info['left'] + info['space'];
+                    top = yn * (height + info['gap']) + info['top'] + info['space'];
+                    _(this).bxy('top', top);
+                    _(this).bxy('left', left);
+                });
+
+            },
+            'fill': function(info, props) {
+
+                var width = (
+                    (info['right'] - info['space']) -
+                    (info['left'] + info['space'])
+                );
+
+                var height = (
+                    (info['bottom'] - info['space']) -
+                    (info['top'] + info['space'])
+                );
+
+                _(this).bxy('top', info['top'] + info['space']);
+                _(this).bxy('left', info['left'] + info['space']);
+                _(this).width(width);
+                _(this).height(height);
+                props['width'] = width;
+                props['height'] = height;
+            }
+        };
+
+        if (typeof(layoutFunctions[value]) == 'function') {
+            if ($$boxy.items[this.selector].state != value) {
+                layoutFunctions[value].call(this, info, props);
+            }
+            $$boxy.items[this.selector].state = value;
+        }
+    };
+
+    _.fn['boxy-animate'] = function(value) {
+        _(this).animate(value);
+        return null;
+    };
+
+    _.fn['boxy-down'] = function(value) {
+        return null;
+    };
+    _.fn['boxy-across'] = function(value) {
+        return null;
+    };
+
+    _.fn['boxy-position'] = function(value) {
+        var props = $$boxy.items[this.selector].properties;
+        props['position'] = value;
+        _(this).bxy('position', value);
+    };
+
+    _.fn['boxy-space'] = function(value) {};
+    _.fn['boxy-bottom-side'] = function(value) {};
+    _.fn['boxy-top-side'] = function(value) {};
+    _.fn['boxy-right-side'] = function(value) {};
+    _.fn['boxy-left-side'] = function(value) {};
+
+    _.fn['boxy-background'] = function(value) {
+        _(this).bxy('background-color', value);
+    };
+    _.fn['boxy-test'] = function(value) {
+        _(this).bxy('background-color', value);
+        _(this).bxy('color', value);
+    };
+
+    _.fn['boxy-left'] = function(value) {
+        if (!this.selector) return;
+        var props = $$boxy.items[this.selector].properties;
+        if (!props['layout']) {
+            _(this).bxy('left', value);
+        }
+    };
+
+    _.fn['boxy-top'] = function(value) {
+        if (!this.selector) return;
+        var props = $$boxy.items[this.selector].properties;
+        if (!props['layout']) {
+            _(this).bxy('top', value);
+        }
+    };
+
+    _.fn['boxy-height'] = function(value) {
+        console.log(value);
+        if (value == 'auto') {
+            value = $(this).children().height();
+        }
+        _(this).height(value);
+    };
+
+    _.fn['boxy-bottom'] = function(value) {
+        _(this).height(value - _(this).offset().top);
+    };
+
+
+    _.fn['boxy-middle'] = function(value) {
+        value = value - _(this).height() / 2
+        _(this).bxy('top', value);
+    };
+
+    _.fn['boxy-width'] = function(value) {
+        _(this).bxy('width', value);
+    };
+
+    _.fn['boxy-height'] = function(value) {
+        _(this).bxy('height', value);
+    };
+
     function load(boxySheet) {
         $$boxy.sheets.loaded = boxySheet;
         $$boxy.sheets.active = boxySheet;
@@ -40,8 +292,9 @@ function BoxySheet() {
         var conditions = {};
 
         var refs = {
+            'window': window,
             '(@window)': window
-        }
+        };
 
         __($$boxy.media).forEach(function(event) {
             var media = $$boxy.media[event];
@@ -138,7 +391,7 @@ function BoxySheet() {
         var self = this;
         __(style).forEach(function(property) {
             var val = boxyEvalProp(style[property].value || style[property]);
-            if (val || val===0) {
+            if (val || val === 0) {
                 setProperty(_(self), property, val);
             }
         });
@@ -149,9 +402,9 @@ function BoxySheet() {
         var bprop;
 
         //console.log(selector,prop,value,el);
-        if (prop.charAt(0)=='_') {
+        if (prop.charAt(0) == '_') {
             prop = prop.substring(1);
-        }  else {
+        } else {
             bprop = 'boxy-' + prop;
             if (typeof _(selector)[bprop] === 'function') {
                 return _(selector)[bprop](value);
@@ -170,6 +423,57 @@ function BoxySheet() {
         console.log('No setter for:', prop);
         console.log('unable to set:', selector, value);
     }
+
+    var elementEvent = {
+        'touchstart': function(item, rule, style) {
+            _(item).touchstart(function() {
+                setElementStyle.call(this, item, style);
+            });
+        },
+        'touchend': function(item, rule, style) {
+            _(item).touchend(function() {
+                setElementStyle.call(this, item, style);
+            });
+        },
+        'clicked': function(item, rule, style) {
+            _(item).data('boxy-style-clicked', style);
+        },
+        'click': function(item, rule, style) {
+            _(item).data('boxy-style-click', style);
+            _(item).unbind('click');
+            _(item).click(function(e) {
+                var clicked = true;
+                var styleClicked = _(this).data('boxy-style-clicked');
+                if (styleClicked && _(this).data('boxy-clicked') == true) {
+                    style = styleClicked;
+                    _(this).data('boxy-clicked', false);
+                } else {
+                    style = _(item).data('boxy-style-click');
+                    _(this).data('boxy-clicked', true);
+                }
+                setElementStyle.call(this, item, style);
+                e.preventDefault();
+            });
+        },
+        'hover': function(item, rule, style) {
+            _(item).unbind('mouseout');
+            _(item).unbind('mouseover');
+            _(item).mouseover(function() {
+                setElementStyle.call(this, item, style);
+            });
+            _(item).mouseout(function() {
+                var self = this;
+                _(this).data('boxy-items').forEach(function(rule) {
+                    var resetProps = {};
+                    var props = $$boxy.items[rule].properties;
+                    __(props).forEach(function(prop) {
+                        resetProps[prop] = props[prop] || '';
+                    });
+                    setElementStyle.call(self, item, resetProps);
+                });
+            });
+        }
+    };
 
     var elementEvent = {
         'touchstart': function(item, rule, style) {
@@ -371,6 +675,9 @@ function BoxySheet() {
         if (typeof val == 'undefined') {
             return undefined;
         }
+        if (typeof val == 'undefined') {
+            return undefined;
+        }
         if (val.indexOf)
             if (val.indexOf("'") < 0 && val.indexOf('(') < 0) val = parseFloat(val);
 
@@ -398,8 +705,8 @@ function BoxySheet() {
             if (item == '@this') {
                 val = $(this).data(prop);
                 if (typeof _(this)[prop] === 'function') {
-                    if (prop=='index') { 
-                        return $(this).data().boxyIndex; 
+                    if (prop == 'index') {
+                        return $(this).data().boxyIndex;
                     }
                     return _(this)[prop]();
                 }
@@ -410,6 +717,7 @@ function BoxySheet() {
                 if (typeof _(window)[prop] == 'function') {
                     return _(window)[prop]();
                 }
+                if (typeof window[prop] != "undefined" ) return window[prop];
             }
             if (item == '@guide') {
                 parse = prop.split('.');
@@ -429,10 +737,16 @@ function BoxySheet() {
                 return parseFloat(_(item).css('left'));
             }
             if (prop == 'right') {
-                return _(item).width() + (parseFloat(_(item).css('left') || 0) );
+                return _(item).width() + (parseFloat(_(item).css('left') || 0));
             }
             if (prop == 'bottom') {
-                return _(item).height() + (parseFloat(_(item).css('top') || 0) );
+                return _(item).height() + (parseFloat(_(item).css('top') || 0));
+            }
+            if (typeof _(item)[bprop] === 'function') {
+                return _(item)[bprop]();
+            }
+            if (typeof _(item)[prop] === 'function') {
+                return _(item)[prop]();
             }
             if (typeof _(item)[bprop] === 'function') {
                 return _(item)[bprop]();
@@ -710,7 +1024,7 @@ function boxyFn(_) {
     };
 
     _.fn['rotate'] = function(value) {
-        _(this).css('transform', 'rotate('+(value/Math.PI*180)+'deg)');
+        _(this).css('transform', 'rotate(' + (value / Math.PI * 180) + 'deg)');
     }
 
 
