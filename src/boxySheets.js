@@ -483,57 +483,6 @@ function BoxySheet() {
         }
     };
 
-    var elementEvent = {
-        'touchstart': function(item, rule, style) {
-            _(item).touchstart(function() {
-                setElementStyle.call(this, item, style);
-            });
-        },
-        'touchend': function(item, rule, style) {
-            _(item).touchend(function() {
-                setElementStyle.call(this, item, style);
-            });
-        },
-        'clicked': function(item, rule, style) {
-            _(item).data('boxy-style-clicked', style);
-        },
-        'click': function(item, rule, style) {
-            _(item).data('boxy-style-click', style);
-            _(item).unbind('click');
-            _(item).click(function(e) {
-                var clicked = true;
-                var styleClicked = _(this).data('boxy-style-clicked');
-                if (styleClicked && _(this).data('boxy-clicked') == true) {
-                    style = styleClicked;
-                    _(this).data('boxy-clicked', false);
-                } else {
-                    style = _(item).data('boxy-style-click');
-                    _(this).data('boxy-clicked', true);
-                }
-                setElementStyle.call(this, item, style);
-                e.preventDefault();
-            });
-        },
-        'hover': function(item, rule, style) {
-            _(item).unbind('mouseout');
-            _(item).unbind('mouseover');
-            _(item).mouseover(function() {
-                setElementStyle.call(this, item, style);
-            });
-            _(item).mouseout(function() {
-                var self = this;
-                _(this).data('boxy-items').forEach(function(rule) {
-                    var resetProps = {};
-                    var props = $$boxy.items[rule].properties;
-                    __(props).forEach(function(prop) {
-                        resetProps[prop] = props[prop] || '';
-                    });
-                    setElementStyle.call(self, item, resetProps);
-                });
-            });
-        }
-    };
-
     /* */
     function buildBoxy(boxySheet) {
         var style, value, code, parse, foo;
