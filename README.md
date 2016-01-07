@@ -4,6 +4,8 @@
    generated Style Sheets driven by event watchers.   Dynamically layout elements in a custom box model
    built with web designer applications in mind, rather then print media.
    
+   note: I'm looking for any help with this!   Bug reports especially.   There are many advantages to this technique, including built in poly-fill support, so the backwards compatibility should be excellent with far more accuracy in layout and page rendering across browsers.   As well as a way to rethink how pages can be structured, destructered, and manipulated.   
+   
 ##What is it?
 
    It's a layout engine made to reduce B.S., driven by a CSS selectors, and plugin support.  
@@ -31,7 +33,7 @@
         }
     }
     
-BoxySheets uses jQuery to support advanced selectors (experimental only Zepto support, as it uses querySelectorAll). 
+BoxySheets uses jQuery (jQuery Lite should work just as well) to support advanced selectors (experimental only Zepto support, as it uses querySelectorAll). 
 
 So, any additional plugin's are supported as "properties", which become function calls, made with the evaluated 'value' of that property:
     #someElement { 

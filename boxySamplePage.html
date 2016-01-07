@@ -1,62 +1,66 @@
-<!DOCTYPE >
+<!DOCTYPE html >
 <html>
-    <head>
-        <style>
-            body,div,.boxy-fill {  margin:0; padding:0; }
-            #nav a { font-size: 18px; }
-        </style>
-        
-        <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
-        <script type="text/javascript" src="dist/boxyParser.min.js"></script>
-        <script type="text/javascript" src="dist/boxySheets.min.js"></script>
-    </head>
-    <body id="body">
-        
-        <!-- Minimal HTML markup, leaving room for semantics -->
-        <nav id="nav">
-            <a href="#box">Box</a>
-            <a href="#fox">Tox</a>
-            <a href="#fox">Rox</a>
-            <a href="#fox">Sox</a>
-            <a href="#fox">Mox</a>
-            <a href="#fox">Fox</a>
-        </nav>
-        
-        <!-- Look Ma! No wrappers, no divs, no spans. Well. OK. One div, for reference! -->
-        <div id="articles">
-            <article><p style="font-size:40px;">Foo</p></article>
-            <article><p>Bar</p></article>
-            <article>Pidgeon</article>
-        </div>
-                
-        <script type="text/javascript">
-                       
-            $(document).ready(init);
-            
-            $.fn.testProp=function(val) {
-                $(this).css({background:val});
-            }
-            
-            function init() {
-                $.get('./boxySheetSample.bxy',function(res) {
-                    var boxy, boxyStyle;
-                    /* 
-                        Parse the BoxySheet into some JS.
-                        The boxyParser is only required for B.S. development.
-                        e.g. simply take the output from
-                        console.log(JSON.stringify(boxyStyle));
-                        and use it in place of the require.
-                    */
-                    boxyStyle = require('boxyParser')(res);
-                    
-                    /* Initialiaze and load a stylesheet, attach any events.  etc. */
-                    boxy = new BoxySheet();
-                    boxy.load(boxyStyle)
-                    /* Boxy boxed. */
-                });
-            }
-            
-        </script>
-                
-    </body>
+<head>
+
+<script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+<!-- Boxy Sheets comes in 2 parts, the parser can be removed for production -->
+<script type="text/javascript" src="src/boxySheets.js"></script>
+<script type="text/javascript" src="dist/boxyParser.min.js"></script>
+<style type="text/css">
+/* tiny reset */
+body,code,div,pre,span,ul,li,ol { margin:0; padding: 0; }
+</style>
+<!--BoxySheet Sample Page -->
+<style type="text/boxysheet">
+    @guide sample {
+        topLine: (@window).middle - 200;    
+        /* middle is our vertical 'center' */
+    }
+    #articles article {
+        top: (@guide).sample.topLine;
+        gap: 20; /*space between elements */
+        space: 20;/* space away from edges */
+        left-side: (@window).center - 300; 
+        right-side: (@window).center + 300;
+        /* note: we can't use the minus sign and no space for now, will enforce camelCase for dot notations */
+        layout: 'fit'; /* one of float, fit and fill */
+        /* layout option, fit the elements found inside given the region (*-side properties) */
+    }
+    @media( (@window).width < 960 ) {
+        @guide sample {
+            topLine: 20;
+        }
+    }
+    @media( (@window).width < 960 ):(@window).scroll { /* target different events */
+        @guide sample {
+            topLine: 20; /* change guide lines based on size / position etc */
+        }
+    }
+</style>
+</head>
+<body>
+    
+    <div id="articles">
+        <article><h1>Article I</h1></article>
+        <article><h1>Article II</h1></article>
+        <article><h1>Article II</h1></article>
+    </div>
+
+<script type="text/javascript">
+	$(document).ready(init);
+
+	function init() {
+
+		$('style[type=text\\/boxysheet]').each(
+			function() {
+				var sheet = this.innerHTML;
+				var bs = new BoxySheet;
+				var boxyStyle = require('boxyParser')(sheet);
+				bs.load(boxyStyle);
+			}
+		);
+	
+	}
+</script>
+</body>
 </html>
