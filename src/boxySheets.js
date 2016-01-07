@@ -399,9 +399,10 @@ function BoxySheet() {
 
     /* set an selector property */
     function setProperty(selector, prop, value, el) {
-        var bprop;
+        var bprop,s,o={};
 
         //console.log(selector,prop,value,el);
+
         if (prop.charAt(0) == '_') {
             prop = prop.substring(1);
         } else {
@@ -410,6 +411,13 @@ function BoxySheet() {
                 return _(selector)[bprop](value);
             }
         }
+        if ( (s=prop.split('-'))[0]=='animate' ) {
+            o={};
+            o[s[1]]=value;
+            _(selector).stop();
+            return _(selector).animate(o);
+        }
+
         if (typeof _(el)[prop] === 'function') {
             return _(el || selector)[prop](value);
         }
