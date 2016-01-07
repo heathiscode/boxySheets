@@ -3,8 +3,7 @@
    BoxySheets is a system that transforms a CSS style syntax into a dyamically 
    generated Style Sheets driven by event watchers.   Dynamically layout elements in a custom box model
    built with web designer applications in mind, rather then print media.
-   
-   note: I'm looking for any help with this!   Bug reports especially.   There are many advantages to this technique, including built in poly-fill support, so the backwards compatibility should be excellent with far more accuracy in layout and page rendering across browsers.   As well as a way to rethink how pages can be structured, destructered, and manipulated.   
+  
    
 ##What is it?
 
@@ -13,41 +12,55 @@
    you to line up areas next to each other.   The ability to reposition elements relative to each other
    in any calculatable fashion allows for infinite variations on responsive layouts.
     
-    @guide foo {
-      left: 20;
-      right: (@window).width - 20;
-      top: (.someGroup:last).bottom + 20; /* 20px below the last of an element with the class .someGroup */
-    }
-    
-    @media( (@window).width < 640 ):(@window).resize {
-        #randomElement { 
-            top: (#article).bottom + 20;
-            across: 'fill';
-            left-side: (#button).left;
-            right-side: (#button).right;
-        }
-    }
-    @media( (@window).scrollTop > 200 ):(@window).scroll {
-        #menu { 
-            position: 'fixed';
-        }
-    }
-    
-BoxySheets uses jQuery (jQuery Lite should work just as well) to support advanced selectors (experimental only Zepto support, as it uses querySelectorAll). 
 
-So, any additional plugin's are supported as "properties", which become function calls, made with the evaluated 'value' of that property:
-    #someElement { 
-       pluginNameThatTakeAString: '#elementGroup'; 
-       otherPlugin: (#element).functionName;
-    }
-    
-You can easily create your own setters as jQuery plugins:
+    <style type="text/boxysheet">
+        /* redefine element guides based on *any* BQ */
 
-    $.fn.newPropertyFn=function(value) {
+        /* create a new 'guide' named, 'page'
+        @guide page {
+            /* store a value of '10' in the property 'left' */
+            left: 10;
+            /* 'special' getters give easy access to dynamic values, like screen size */
+            right: (@window).width - 10;
+        }
+
+        /* define our element, a little differently */
+        #element {
+            /* 'layout' is a built in Boxy JS function, 'fit' is the paramater */
+            layout: 'fit';
+            /* calling layout('fit') looks at our other properties */
+            left-side: (@guide).page.left;
+            right-side: (@guide).page.right;
+        }
+
+
+        /* media guides make sense with normal conditions */
+        @media( (@window).width > 640 ) {
+            @guide page {
+                left: 60;
+                right: (@window).width - 30;
+            }
+        }
+
+        /* adding 'event' options, lets us move things on scrolling (or any other events)  */
+        @media( (@window).scrollY > 1024 ):(@window).scroll {
+            @guide page {
+                left: 60;
+                right: (@window).width - 30;
+            }
+        }
+
+    </style>
+    
+BoxySheets uses jQuery/lite to support advanced selectors.
+You can easily create your own setters for Boxy, as jQuery plugins, e.g.:
+
+    $.fn.myPropertyFn=function(value) {
        $(this).css('background',value);
     }
-In your JS, and in your Boxy:    
-    #myElement{ newPropertyFn: 'rgba(0,1,0,0.5)'; }
+In your JS, and then in your Boxy code:    
+    #myElement{ myPropertyFn: 'rgba(0,1,0,0.5)'; }
+
 You get a transparent green background on #myElement.    
 
 Built in special objects like @guide, allow for easy layout.
@@ -55,7 +68,7 @@ Built in special objects like @guide, allow for easy layout.
      gap, space
      across, left-side, right-side
      down, top-side, bottom-side
-     alignment 
+     layout 
         
     
     @At handles for extra JS magic with
@@ -142,6 +155,7 @@ and create a guide using an element's "box" (the left/top/width/height).
 
 ##Line things up in columns:
     #nav a {
+        layout: 'fit'; /*fit all the elements, squeeze em if you must */
         across: 4;
         left-side: (@guide).foo.left;
         right-side: (@guide).foo.right;
@@ -154,4 +168,4 @@ and create a guide using an element's "box" (the left/top/width/height).
         bottom-side: (@guide).foo.bottom;
     }
  
-The sample boxy sheet shows more.  
+ 
